@@ -1,0 +1,17 @@
+server:
+  address: 0.0.0.0
+  port: 8102
+  servlet:
+    context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:13306/junso_db
+    username: root
+    password: 1430
+  elasticsearch:
+    uris: http://localhost:9200 #默认就是这个
