@@ -1,11 +1,13 @@
 package com.zjh.junsobackend.manager;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zjh.junsobackend.common.ErrorCode;
 import com.zjh.junsobackend.dataSource.DataSource;
 import com.zjh.junsobackend.dataSource.impl.PictureDataSource;
 import com.zjh.junsobackend.dataSource.impl.PostDataSource;
 import com.zjh.junsobackend.dataSource.impl.UserDataSource;
 import com.zjh.junsobackend.enums.SearchTypeEnum;
+import com.zjh.junsobackend.exception.BusinessException;
 import com.zjh.junsobackend.pojo.entity.Picture;
 import com.zjh.junsobackend.pojo.vo.PostVo;
 import com.zjh.junsobackend.pojo.vo.SearchVo;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @Component
 public class DataSourceRegister {
@@ -49,18 +53,39 @@ public class DataSourceRegister {
     }
 
     public SearchVo executeAllDoSearch(String searchText, int current, long pageSize) {
+
         SearchVo searchVo = new SearchVo();
+
         //图片
-        Page<Picture> picturePage = pictureDataSource.doSearch(searchText, current, pageSize);
-        searchVo.setPicturePage(picturePage);
+        CompletableFuture<Page<Picture>> pictureTask = CompletableFuture.supplyAsync(() -> pictureDataSource.doSearch(searchText, current, pageSize));
+
 
         //用户
-        Page<UserVo> userVoPage = userDataSource.doSearch(searchText, current, pageSize);
-        searchVo.setUserVoPage(userVoPage);
+        CompletableFuture<Page<UserVo>> userTask = CompletableFuture.supplyAsync(() -> userDataSource.doSearch(searchText, current, pageSize));
+
 
         //帖子
-        Page<PostVo> postVoPage = postDataSource.doSearch(searchText, current, pageSize);
-        searchVo.setPostVoPage(postVoPage);
+        CompletableFuture<Page<PostVo>> postTask = CompletableFuture.supplyAsync(() -> postDataSource.doSearch(searchText, current, pageSize));
+
+        try {
+            searchVo.setPicturePage(pictureTask.get());
+            searchVo.setUserVoPage(userTask.get());
+            searchVo.setPostVoPage(postTask.get());
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
+        }
+
+//        //图片
+//        Page<Picture> picturePage = pictureDataSource.doSearch(searchText, current, pageSize);
+//        searchVo.setPicturePage(picturePage);
+//
+//        //用户
+//        Page<UserVo> userVoPage = userDataSource.doSearch(searchText, current, pageSize);
+//        searchVo.setUserVoPage(userVoPage);
+//
+//        //帖子
+//        Page<PostVo> postVoPage = postDataSource.doSearch(searchText, current, pageSize);
+//        searchVo.setPostVoPage(postVoPage);
 
         return searchVo;
     }
